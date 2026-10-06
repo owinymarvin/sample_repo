@@ -1,0 +1,13 @@
+server:
+  port: 8081
+spring:
+  application:
+    name: camunda
+camunda:
+  bpm:
+    admin-user.id: camunda
+    admin-user.password: camunda
+    generic-properties:
+      properties:
+        enforce-history-time-to-live: false
+    deployment-resource-pattern: classpath*:processes/**/*.bpmn
