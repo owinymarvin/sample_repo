@@ -1,4 +1,4 @@
-package com.training.camunda.http;
+package com.training.camunda.config;
 
 import lombok.Data;
 import lombok.Getter;
@@ -17,7 +17,7 @@ import java.util.Map;
 @Configuration
 @ConfigurationProperties(prefix = "http")
 @Validated
-public class HttpProperties {
+public class HttpConfigProperties {
 
     @NotNull(message = "HTTP applications map must not be null")
     private Map<String, ApplicationConfig> applications;
@@ -54,17 +54,17 @@ public class HttpProperties {
     }
 
     public HttpMethod validateAndGetHttpMethod(String method) {
-        if (method == null || method.isBlank()) {
-            throw new IllegalArgumentException("HTTP method must not be blank.");
+        if (!(method == null)){
+            try {
+                return HttpMethod.valueOf(method.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(
+                        String.format("Invalid HTTP method '%s'. Supported methods: GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD.", method),
+                        e
+                );
+            }
         }
-        try {
-            return HttpMethod.valueOf(method.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(
-                    String.format("Invalid HTTP method '%s'. Supported methods: GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD.", method),
-                    e
-            );
-        }
+        return HttpMethod.valueOf("POST");
     }
 
     @Data

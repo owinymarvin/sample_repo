@@ -16,4 +16,4 @@ http:
     document:
       url: http://${DOCUMENT_URL:localhost}:9000/api/document
     notification:
-      url: http://${NOTIFICATION_URL:localhost}:9001/api/notification
+      url: http://${NOTIFICATION_URL:localhost}:9001/api/train-notification

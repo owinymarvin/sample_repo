@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0xryixx" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.51.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0xryixx" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.51.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
   <bpmn:process id="HttpServiceDelegate" name="HttpServiceDelegate" isExecutable="true">
-    <bpmn:serviceTask id="httpServiceDelegate" name="httpServiceDelegate" camunda:delegateExpression="${httpServiceDelegate}">
+    <bpmn:serviceTask id="httpServiceDelegate" name="Create Document" camunda:delegateExpression="${httpRegistrator}">
       <bpmn:extensionElements>
         <camunda:inputOutput>
           <camunda:inputParameter name="appName">document</camunda:inputParameter>
@@ -16,53 +16,170 @@
             </camunda:map>
           </camunda:inputParameter>
           <camunda:outputParameter name="drn">${result.drn}</camunda:outputParameter>
+          <camunda:outputParameter name="status">${result.status}</camunda:outputParameter>
+          <camunda:outputParameter name="id">${result.id}</camunda:outputParameter>
         </camunda:inputOutput>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_12f8uxi</bpmn:incoming>
       <bpmn:outgoing>Flow_1p1w993</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:endEvent id="Event_0dujjws">
-      <bpmn:incoming>Flow_1un1fqb</bpmn:incoming>
-    </bpmn:endEvent>
-    <bpmn:sequenceFlow id="Flow_1p1w993" sourceRef="httpServiceDelegate" targetRef="Activity_0cihpr5" />
+    <bpmn:sequenceFlow id="Flow_1p1w993" sourceRef="httpServiceDelegate" targetRef="approveDocument" />
     <bpmn:startEvent id="StartEvent_1">
       <bpmn:outgoing>Flow_12f8uxi</bpmn:outgoing>
     </bpmn:startEvent>
     <bpmn:sequenceFlow id="Flow_12f8uxi" sourceRef="StartEvent_1" targetRef="httpServiceDelegate" />
-    <bpmn:sequenceFlow id="Flow_1un1fqb" sourceRef="Activity_0cihpr5" targetRef="Event_0dujjws" />
-    <bpmn:userTask id="Activity_0cihpr5">
+    <bpmn:exclusiveGateway id="Gateway_1i77am9">
+      <bpmn:incoming>Flow_1sjb256</bpmn:incoming>
+      <bpmn:outgoing>approved</bpmn:outgoing>
+      <bpmn:outgoing>rejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_1sjb256" sourceRef="approveDocument" targetRef="Gateway_1i77am9" />
+    <bpmn:sequenceFlow id="approved" name="approved" sourceRef="Gateway_1i77am9" targetRef="Activity_0qilsfq">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approveDocument=='APPROVED'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="rejected" name="rejected" sourceRef="Gateway_1i77am9" targetRef="Activity_08dadi9">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approveDocument=='REJECTED'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_17syb1v" sourceRef="Activity_0qilsfq" targetRef="Activity_0b5tgzy" />
+    <bpmn:sequenceFlow id="Flow_0ed2xv1" sourceRef="Activity_0b5tgzy" targetRef="Activity_01wmxxa" />
+    <bpmn:endEvent id="Event_0qwhtlj">
+      <bpmn:incoming>Flow_172upwh</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_172upwh" sourceRef="Activity_01wmxxa" targetRef="Event_0qwhtlj" />
+    <bpmn:serviceTask id="Activity_0qilsfq" name="Update Doc with Approval Msg" camunda:delegateExpression="${updateApprovedDocumentDelegate}">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="location">/status</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>approved</bpmn:incoming>
+      <bpmn:outgoing>Flow_17syb1v</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:scriptTask id="Activity_0b5tgzy" name="Script to print some details" scriptFormat="javascript">
+      <bpmn:incoming>Flow_17syb1v</bpmn:incoming>
+      <bpmn:incoming>Flow_053uput</bpmn:incoming>
+      <bpmn:outgoing>Flow_0ed2xv1</bpmn:outgoing>
+      <bpmn:script>if (approveDocument === 'APPROVED'){
+print('Doc was approved')}
+else{
+print('Doc was rejected')
+}
+print(result.status)</bpmn:script>
+    </bpmn:scriptTask>
+    <bpmn:serviceTask id="Activity_01wmxxa" name="Send Notification" camunda:delegateExpression="${httpRegistrator}">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="appName">notification</camunda:inputParameter>
+          <camunda:inputParameter name="location">notification/send</camunda:inputParameter>
+          <camunda:inputParameter name="payload">
+            <camunda:map>
+              <camunda:entry key="message">Document status updated successfully + ${result.status}</camunda:entry>
+              <camunda:entry key="email">user@example.com</camunda:entry>
+            </camunda:map>
+          </camunda:inputParameter>
+          <camunda:outputParameter name="message">${result.status}</camunda:outputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0ed2xv1</bpmn:incoming>
+      <bpmn:outgoing>Flow_172upwh</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:scriptTask id="approveDocument" name="Approve Document" scriptFormat="javascript">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:outputParameter name="approveDocument">REJECTED</camunda:outputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
       <bpmn:incoming>Flow_1p1w993</bpmn:incoming>
-      <bpmn:outgoing>Flow_1un1fqb</bpmn:outgoing>
-    </bpmn:userTask>
+      <bpmn:outgoing>Flow_1sjb256</bpmn:outgoing>
+      <bpmn:script>print('will be implemented later')</bpmn:script>
+    </bpmn:scriptTask>
+    <bpmn:serviceTask id="Activity_08dadi9" name="Update Doc with Rejection Msg" camunda:delegateExpression="${updateRejectedDocumentDelegate}">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="location">/status</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>rejected</bpmn:incoming>
+      <bpmn:outgoing>Flow_053uput</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_053uput" sourceRef="Activity_08dadi9" targetRef="Activity_0b5tgzy" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="HttpServiceDelegate">
-      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
-        <dc:Bounds x="182" y="102" width="36" height="36" />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1yo4cm8_di" bpmnElement="httpServiceDelegate">
-        <dc:Bounds x="270" y="80" width="100" height="80" />
+        <dc:Bounds x="270" y="210" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_0dujjws_di" bpmnElement="Event_0dujjws">
-        <dc:Bounds x="622" y="82" width="36" height="36" />
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="182" y="232" width="36" height="36" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_0wsxyil_di" bpmnElement="Activity_0cihpr5">
-        <dc:Bounds x="400" y="80" width="100" height="80" />
+      <bpmndi:BPMNShape id="Gateway_1i77am9_di" bpmnElement="Gateway_1i77am9" isMarkerVisible="true">
+        <dc:Bounds x="635" y="225" width="50" height="50" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="Flow_12f8uxi_di" bpmnElement="Flow_12f8uxi">
-        <di:waypoint x="218" y="120" />
-        <di:waypoint x="270" y="120" />
-      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Event_0qwhtlj_di" bpmnElement="Event_0qwhtlj">
+        <dc:Bounds x="1222" y="232" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1f1nbtq_di" bpmnElement="Activity_0qilsfq">
+        <dc:Bounds x="750" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_03b45yw_di" bpmnElement="Activity_0b5tgzy">
+        <dc:Bounds x="880" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_024zke6_di" bpmnElement="Activity_01wmxxa">
+        <dc:Bounds x="1060" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_000zs3a_di" bpmnElement="approveDocument">
+        <dc:Bounds x="450" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_19blbf9" bpmnElement="Activity_08dadi9">
+        <dc:Bounds x="760" y="330" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_1p1w993_di" bpmnElement="Flow_1p1w993">
-        <di:waypoint x="370" y="120" />
-        <di:waypoint x="400" y="120" />
+        <di:waypoint x="370" y="250" />
+        <di:waypoint x="450" y="250" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1un1fqb_di" bpmnElement="Flow_1un1fqb">
-        <di:waypoint x="500" y="120" />
-        <di:waypoint x="561" y="120" />
-        <di:waypoint x="561" y="100" />
-        <di:waypoint x="622" y="100" />
+      <bpmndi:BPMNEdge id="Flow_12f8uxi_di" bpmnElement="Flow_12f8uxi">
+        <di:waypoint x="218" y="250" />
+        <di:waypoint x="270" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1sjb256_di" bpmnElement="Flow_1sjb256">
+        <di:waypoint x="550" y="250" />
+        <di:waypoint x="635" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0z8apzd_di" bpmnElement="approved">
+        <di:waypoint x="660" y="225" />
+        <di:waypoint x="660" y="120" />
+        <di:waypoint x="750" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="667" y="169.5" width="46" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0m78nv3_di" bpmnElement="rejected">
+        <di:waypoint x="660" y="275" />
+        <di:waypoint x="660" y="370" />
+        <di:waypoint x="760" y="370" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="696" y="347.5" width="40" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_17syb1v_di" bpmnElement="Flow_17syb1v">
+        <di:waypoint x="850" y="120" />
+        <di:waypoint x="930" y="120" />
+        <di:waypoint x="930" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ed2xv1_di" bpmnElement="Flow_0ed2xv1">
+        <di:waypoint x="980" y="250" />
+        <di:waypoint x="1060" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_172upwh_di" bpmnElement="Flow_172upwh">
+        <di:waypoint x="1160" y="250" />
+        <di:waypoint x="1222" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_053uput_di" bpmnElement="Flow_053uput">
+        <di:waypoint x="860" y="370" />
+        <di:waypoint x="930" y="370" />
+        <di:waypoint x="930" y="290" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
